@@ -269,6 +269,23 @@ Shortener (11)
         6. Метод getValue должен возвращать значение полученное из k2v.
         7. Метод getKey должен возвращать значение полученное из v2k.
 
+Shortener (12)
+        Задача, когда требуется создать Map, работающий в две стороны (по ключу получать значение, а по значению ключ) не такая уж и редкая. Такие коллекции уже реализованы в различных сторонних библиотеках коллекций. Одна из таких Guava от Google.
+        12.1. Скачай и подключи библиотеку guava версии 19.0.
+        12.2. Реализуй стратегию HashBiMapStorageStrategy. Она должна:
+        12.2.1. Поддерживать интерфейс StorageStrategy.
+        12.2.2. Внутри иметь только одно поле data типа HashBiMap.
+        12.3. Проверь новую стратегию в методе main(). Запусти программу и сравни скорость работы пяти стратегий.
+
+
+Требования:
+        1. Класс HashBiMapStorageStrategy должен поддерживать интерфейс StorageStrategy.
+        2. В классе HashBiMapStorageStrategy должно быть создано только одно поле data типа HashBiMap.
+        3. Метод containsKey должен проверять содержится ли ключ в data.
+        4. Метод containsValue должен проверять содержится ли значение в data.
+        5. Метод put должен добавлять пару (key, value) в data.
+        6. Метод getValue должен возвращать значение полученное из data.
+        7. Метод getKey должен возвращать значение полученное из data.inverse().
 */
 
 import com.javarush.task.task33.task3310.strategy.*;
@@ -326,7 +343,8 @@ public class Solution {
     public static void main(String[] args) {
         testStrategy(new HashMapStorageStrategy(), 10000);
         testStrategy(new OurHashMapStorageStrategy(), 10000);
-        testStrategy(new FileStorageStrategy(), 100);
+//        testStrategy(new FileStorageStrategy(), 100);
         testStrategy(new OurHashBiMapStorageStrategy(), 10000);
+        testStrategy(new HashBiMapStorageStrategy(), 10000);
     }
 }
