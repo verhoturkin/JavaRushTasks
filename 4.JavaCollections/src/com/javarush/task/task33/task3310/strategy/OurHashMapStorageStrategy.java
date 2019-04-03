@@ -104,9 +104,11 @@ public class OurHashMapStorageStrategy implements StorageStrategy {
             if (e.hash == hash && ((k = e.key) == key || key.equals(k))) {
                 String oldValue = e.value;
                 e.value = value;
+                return;
             }
         }
         addEntry(hash, key, value, i);
+        return;
     }
 
     @Override
