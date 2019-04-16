@@ -1,9 +1,6 @@
 package com.javarush.task.task39.task3913;
 
-import com.javarush.task.task39.task3913.query.DateQuery;
-import com.javarush.task.task39.task3913.query.EventQuery;
-import com.javarush.task.task39.task3913.query.IPQuery;
-import com.javarush.task.task39.task3913.query.UserQuery;
+import com.javarush.task.task39.task3913.query.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -15,7 +12,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery {
+public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQuery {
     private Path logDir;
     private ArrayList<Record> records = new ArrayList<>();
     private boolean dirIsParsed = false;
@@ -31,6 +28,34 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery {
     public int getNumberOfUniqueIPs(Date after, Date before) {
 
         return getUniqueIPs(after, before).size();
+    }
+
+    public Set<Object> execute(String query) {
+        parseDir();
+
+        switch (query) {
+            case "get ip":
+                return records.stream()
+                        .map(Record::getIp)
+                        .collect(Collectors.toSet());
+            case "get user":
+                return records.stream()
+                        .map(Record::getName)
+                        .collect(Collectors.toSet());
+            case "get date":
+                return records.stream()
+                        .map(Record::getDate)
+                        .collect(Collectors.toSet());
+            case "get event":
+                return records.stream()
+                        .map(Record::getEvent)
+                        .collect(Collectors.toSet());
+            case "get status":
+                return records.stream()
+                        .map(Record::getStatus)
+                        .collect(Collectors.toSet());
+        }
+        return null;
     }
 
     public Set<String> getUniqueIPs(Date after, Date before) {
