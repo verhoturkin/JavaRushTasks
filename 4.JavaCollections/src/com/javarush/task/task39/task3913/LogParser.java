@@ -1,5 +1,6 @@
 package com.javarush.task.task39.task3913;
 
+import com.javarush.task.task39.task3913.query.DateQuery;
 import com.javarush.task.task39.task3913.query.IPQuery;
 import com.javarush.task.task39.task3913.query.UserQuery;
 
@@ -15,7 +16,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class LogParser implements IPQuery, UserQuery {
+public class LogParser implements IPQuery, UserQuery, DateQuery {
     private Path logDir;
     private ArrayList<Record> records = new ArrayList<>();
     private boolean dirIsParsed = false;
@@ -38,7 +39,7 @@ public class LogParser implements IPQuery, UserQuery {
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before))
-                .map(record -> record.ip)
+                .map(Record::getIp)
                 .collect(Collectors.toSet());
     }
 
@@ -47,7 +48,7 @@ public class LogParser implements IPQuery, UserQuery {
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user))
-                .map(record -> record.ip)
+                .map(Record::getIp)
                 .collect(Collectors.toSet());
     }
 
@@ -56,7 +57,7 @@ public class LogParser implements IPQuery, UserQuery {
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && record.event == event)
-                .map(record -> record.ip)
+                .map(Record::getIp)
                 .collect(Collectors.toSet());
     }
 
@@ -65,7 +66,7 @@ public class LogParser implements IPQuery, UserQuery {
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && record.status == status)
-                .map(record -> record.ip)
+                .map(Record::getIp)
                 .collect(Collectors.toSet());
     }
 
@@ -74,7 +75,7 @@ public class LogParser implements IPQuery, UserQuery {
         parseDir();
 
         return records.stream()
-                .map(rec -> rec.name)
+                .map(Record::getName)
                 .collect(Collectors.toSet());
     }
 
@@ -83,7 +84,7 @@ public class LogParser implements IPQuery, UserQuery {
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before))
-                .map(record -> record.name)
+                .map(Record::getName)
                 .collect(Collectors.toSet())
                 .size();
     }
@@ -93,7 +94,7 @@ public class LogParser implements IPQuery, UserQuery {
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user))
-                .map(record -> record.event)
+                .map(Record::getEvent)
                 .collect(Collectors.toSet())
                 .size();
     }
@@ -103,7 +104,7 @@ public class LogParser implements IPQuery, UserQuery {
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.ip, ip))
-                .map(record -> record.name)
+                .map(Record::getName)
                 .collect(Collectors.toSet());
     }
 
@@ -112,7 +113,7 @@ public class LogParser implements IPQuery, UserQuery {
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.LOGIN)
-                .map(record -> record.name)
+                .map(Record::getName)
                 .collect(Collectors.toSet());
     }
 
@@ -121,7 +122,7 @@ public class LogParser implements IPQuery, UserQuery {
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.DOWNLOAD_PLUGIN)
-                .map(record -> record.name)
+                .map(Record::getName)
                 .collect(Collectors.toSet());
     }
 
@@ -130,7 +131,7 @@ public class LogParser implements IPQuery, UserQuery {
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.WRITE_MESSAGE)
-                .map(record -> record.name)
+                .map(Record::getName)
                 .collect(Collectors.toSet());
     }
 
@@ -139,7 +140,7 @@ public class LogParser implements IPQuery, UserQuery {
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.SOLVE_TASK)
-                .map(record -> record.name)
+                .map(Record::getName)
                 .collect(Collectors.toSet());
     }
 
@@ -148,7 +149,7 @@ public class LogParser implements IPQuery, UserQuery {
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.SOLVE_TASK && record.task == task)
-                .map(record -> record.name)
+                .map(Record::getName)
                 .collect(Collectors.toSet());
     }
 
@@ -157,7 +158,7 @@ public class LogParser implements IPQuery, UserQuery {
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.DONE_TASK)
-                .map(record -> record.name)
+                .map(Record::getName)
                 .collect(Collectors.toSet());
     }
 
@@ -166,7 +167,85 @@ public class LogParser implements IPQuery, UserQuery {
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.DONE_TASK && record.task == task)
-                .map(record -> record.name)
+                .map(Record::getName)
+                .collect(Collectors.toSet());
+    }
+
+    public Set<Date> getDatesForUserAndEvent(String user, Event event, Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user) && record.event == event)
+                .map(Record::getDate)
+                .collect(Collectors.toSet());
+    }
+
+    public Set<Date> getDatesWhenSomethingFailed(Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before) && record.status == Status.FAILED)
+                .map(Record::getDate)
+                .collect(Collectors.toSet());
+    }
+
+    public Set<Date> getDatesWhenErrorHappened(Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before) && record.status == Status.ERROR)
+                .map(Record::getDate)
+                .collect(Collectors.toSet());
+    }
+
+    public Date getDateWhenUserLoggedFirstTime(String user, Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user) && record.event == Event.LOGIN)
+                .map(Record::getDate)
+                .sorted()
+                .findFirst()
+                .orElse(null);
+    }
+
+    public Date getDateWhenUserSolvedTask(String user, int task, Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user) && record.event == Event.SOLVE_TASK && record.task == task)
+                .map(Record::getDate)
+                .sorted()
+                .findFirst()
+                .orElse(null);
+    }
+
+    public Date getDateWhenUserDoneTask(String user, int task, Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user) && record.event == Event.DONE_TASK && record.task == task)
+                .map(Record::getDate)
+                .sorted()
+                .findFirst()
+                .orElse(null);
+    }
+
+    public Set<Date> getDatesWhenUserWroteMessage(String user, Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user) && record.event == Event.WRITE_MESSAGE)
+                .map(Record::getDate)
+                .collect(Collectors.toSet());
+    }
+
+    public Set<Date> getDatesWhenUserDownloadedPlugin(String user, Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user) && record.event == Event.DOWNLOAD_PLUGIN)
+                .map(Record::getDate)
                 .collect(Collectors.toSet());
     }
 
@@ -204,7 +283,9 @@ public class LogParser implements IPQuery, UserQuery {
     public void parseDir() {
         if (!dirIsParsed) {
             try {
-                Files.list(logDir).filter(path -> path.toString().endsWith(".log")).forEach(this::parseLog);
+                Files.list(logDir)
+                        .filter(path -> path.toString().endsWith(".log"))
+                        .forEach(this::parseLog);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -219,6 +300,30 @@ public class LogParser implements IPQuery, UserQuery {
         Event event;
         int task;
         Status status;
+
+        public String getIp() {
+            return ip;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public Date getDate() {
+            return date;
+        }
+
+        public Event getEvent() {
+            return event;
+        }
+
+        public int getTask() {
+            return task;
+        }
+
+        public Status getStatus() {
+            return status;
+        }
     }
 
 
