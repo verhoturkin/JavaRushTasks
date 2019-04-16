@@ -1,6 +1,7 @@
 package com.javarush.task.task39.task3913;
 
 import com.javarush.task.task39.task3913.query.DateQuery;
+import com.javarush.task.task39.task3913.query.EventQuery;
 import com.javarush.task.task39.task3913.query.IPQuery;
 import com.javarush.task.task39.task3913.query.UserQuery;
 
@@ -10,13 +11,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class LogParser implements IPQuery, UserQuery, DateQuery {
+public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery {
     private Path logDir;
     private ArrayList<Record> records = new ArrayList<>();
     private boolean dirIsParsed = false;
@@ -247,6 +246,93 @@ public class LogParser implements IPQuery, UserQuery, DateQuery {
                 .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user) && record.event == Event.DOWNLOAD_PLUGIN)
                 .map(Record::getDate)
                 .collect(Collectors.toSet());
+    }
+
+    public int getNumberOfAllEvents(Date after, Date before) {
+        return getAllEvents(after, before).size();
+    }
+
+    public Set<Event> getAllEvents(Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before))
+                .map(Record::getEvent)
+                .collect(Collectors.toSet());
+    }
+
+    public Set<Event> getEventsForIP(String ip, Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.ip, ip))
+                .map(Record::getEvent)
+                .collect(Collectors.toSet());
+    }
+
+    public Set<Event> getEventsForUser(String user, Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user))
+                .map(Record::getEvent)
+                .collect(Collectors.toSet());
+    }
+
+    public Set<Event> getFailedEvents(Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before) && record.status == Status.FAILED)
+                .map(Record::getEvent)
+                .collect(Collectors.toSet());
+    }
+
+    public Set<Event> getErrorEvents(Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before) && record.status == Status.ERROR)
+                .map(Record::getEvent)
+                .collect(Collectors.toSet());
+    }
+
+    public int getNumberOfAttemptToSolveTask(int task, Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.SOLVE_TASK && record.task == task)
+                .map(Record::getEvent)
+                .map(event -> 1)
+                .reduce(0, Integer::sum);
+    }
+
+    public int getNumberOfSuccessfulAttemptToSolveTask(int task, Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.DONE_TASK && record.task == task)
+                .map(Record::getEvent)
+                .map(event -> 1)
+                .reduce(0, Integer::sum);
+    }
+
+    public Map<Integer, Integer> getAllSolvedTasksAndTheirNumber(Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.SOLVE_TASK)
+                .map(Record::getTask)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.reducing(0, e -> 1, Integer::sum)));
+    }
+
+    public Map<Integer, Integer> getAllDoneTasksAndTheirNumber(Date after, Date before) {
+        parseDir();
+
+        return records.stream()
+                .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.DONE_TASK)
+                .map(Record::getTask)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.reducing(0, e -> 1, Integer::sum)));
     }
 
     private Record getRecord(String string) {
