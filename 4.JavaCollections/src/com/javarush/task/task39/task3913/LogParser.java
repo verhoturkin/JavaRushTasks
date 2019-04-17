@@ -4,12 +4,16 @@ import com.javarush.task.task39.task3913.query.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQuery {
@@ -33,29 +37,62 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
     public Set<Object> execute(String query) {
         parseDir();
 
-        switch (query) {
-            case "get ip":
-                return records.stream()
-                        .map(Record::getIp)
-                        .collect(Collectors.toSet());
-            case "get user":
-                return records.stream()
-                        .map(Record::getName)
-                        .collect(Collectors.toSet());
-            case "get date":
-                return records.stream()
-                        .map(Record::getDate)
-                        .collect(Collectors.toSet());
-            case "get event":
-                return records.stream()
-                        .map(Record::getEvent)
-                        .collect(Collectors.toSet());
-            case "get status":
-                return records.stream()
-                        .map(Record::getStatus)
-                        .collect(Collectors.toSet());
+        Query q = parseQuery(query);
+
+        if (q.field1 != null) {
+            try {
+                Method method = Record.class.getMethod("get" + q.field1.substring(0, 1).toUpperCase() + q.field1.substring(1));
+                Method method2;
+                if (q.field2 != null)
+                    method2 = Record.class.getMethod("get" + q.field2.substring(0, 1).toUpperCase() + q.field2.substring(1));
+                else method2 = null;
+
+                Set<Object> set = new HashSet<>();
+                for (Record record : records) {
+                    if (method2 != null && Objects.equals(method2.invoke(record), q.value1) || method2 == null) {
+                        Object invoke = method.invoke(record);
+                        set.add(invoke);
+                    }
+                }
+                return set;
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+            }
         }
         return null;
+    }
+
+    private Query parseQuery(String query) {
+        String fullPattern = "^get\\s(?<field1>\\w+)\\sfor\\s(?<field2>\\w+)\\s=\\s\"(?<value1>.*?)\"";
+        String shortPattern = "^get\\s(?<field1>\\w+)";
+
+        Query q = new Query();
+
+        if (query.matches(fullPattern)) {
+            Matcher matcher = Pattern.compile(fullPattern).matcher(query);
+            if (matcher.find()) {
+                q.field1 = matcher.group("field1");
+                q.field2 = matcher.group("field2");
+                try {
+                    if (q.field2.equals("date"))
+                        q.value1 = new SimpleDateFormat("dd.MM.yyyy H:m:s").parse(matcher.group("value1"));
+                    else if (q.field2.equals("event"))
+                        q.value1 = Event.valueOf(matcher.group("value1"));
+                    else if (q.field2.equals("status"))
+                        q.value1 = Status.valueOf(matcher.group("value1"));
+                    else q.value1 = matcher.group("value1");
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+            }
+        } else if (query.matches(shortPattern)) {
+            Matcher matcher = Pattern.compile(shortPattern).matcher(query);
+            if (matcher.find()) {
+                q.field1 = matcher.group("field1");
+            }
+        }
+
+        return q;
     }
 
     public Set<String> getUniqueIPs(Date after, Date before) {
@@ -71,7 +108,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
         parseDir();
 
         return records.stream()
-                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user))
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.user, user))
                 .map(Record::getIp)
                 .collect(Collectors.toSet());
     }
@@ -99,7 +136,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
         parseDir();
 
         return records.stream()
-                .map(Record::getName)
+                .map(Record::getUser)
                 .collect(Collectors.toSet());
     }
 
@@ -108,7 +145,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before))
-                .map(Record::getName)
+                .map(Record::getUser)
                 .collect(Collectors.toSet())
                 .size();
     }
@@ -117,7 +154,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
         parseDir();
 
         return records.stream()
-                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user))
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.user, user))
                 .map(Record::getEvent)
                 .collect(Collectors.toSet())
                 .size();
@@ -128,7 +165,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.ip, ip))
-                .map(Record::getName)
+                .map(Record::getUser)
                 .collect(Collectors.toSet());
     }
 
@@ -137,7 +174,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.LOGIN)
-                .map(Record::getName)
+                .map(Record::getUser)
                 .collect(Collectors.toSet());
     }
 
@@ -146,7 +183,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.DOWNLOAD_PLUGIN)
-                .map(Record::getName)
+                .map(Record::getUser)
                 .collect(Collectors.toSet());
     }
 
@@ -155,7 +192,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.WRITE_MESSAGE)
-                .map(Record::getName)
+                .map(Record::getUser)
                 .collect(Collectors.toSet());
     }
 
@@ -164,7 +201,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.SOLVE_TASK)
-                .map(Record::getName)
+                .map(Record::getUser)
                 .collect(Collectors.toSet());
     }
 
@@ -173,7 +210,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.SOLVE_TASK && record.task == task)
-                .map(Record::getName)
+                .map(Record::getUser)
                 .collect(Collectors.toSet());
     }
 
@@ -182,7 +219,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.DONE_TASK)
-                .map(Record::getName)
+                .map(Record::getUser)
                 .collect(Collectors.toSet());
     }
 
@@ -191,7 +228,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
 
         return records.stream()
                 .filter(record -> isDateInRange(record.date, after, before) && record.event == Event.DONE_TASK && record.task == task)
-                .map(Record::getName)
+                .map(Record::getUser)
                 .collect(Collectors.toSet());
     }
 
@@ -199,7 +236,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
         parseDir();
 
         return records.stream()
-                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user) && record.event == event)
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.user, user) && record.event == event)
                 .map(Record::getDate)
                 .collect(Collectors.toSet());
     }
@@ -226,7 +263,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
         parseDir();
 
         return records.stream()
-                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user) && record.event == Event.LOGIN)
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.user, user) && record.event == Event.LOGIN)
                 .map(Record::getDate)
                 .sorted()
                 .findFirst()
@@ -237,7 +274,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
         parseDir();
 
         return records.stream()
-                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user) && record.event == Event.SOLVE_TASK && record.task == task)
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.user, user) && record.event == Event.SOLVE_TASK && record.task == task)
                 .map(Record::getDate)
                 .sorted()
                 .findFirst()
@@ -248,7 +285,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
         parseDir();
 
         return records.stream()
-                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user) && record.event == Event.DONE_TASK && record.task == task)
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.user, user) && record.event == Event.DONE_TASK && record.task == task)
                 .map(Record::getDate)
                 .sorted()
                 .findFirst()
@@ -259,7 +296,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
         parseDir();
 
         return records.stream()
-                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user) && record.event == Event.WRITE_MESSAGE)
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.user, user) && record.event == Event.WRITE_MESSAGE)
                 .map(Record::getDate)
                 .collect(Collectors.toSet());
     }
@@ -268,7 +305,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
         parseDir();
 
         return records.stream()
-                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user) && record.event == Event.DOWNLOAD_PLUGIN)
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.user, user) && record.event == Event.DOWNLOAD_PLUGIN)
                 .map(Record::getDate)
                 .collect(Collectors.toSet());
     }
@@ -299,7 +336,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
         parseDir();
 
         return records.stream()
-                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.name, user))
+                .filter(record -> isDateInRange(record.date, after, before) && Objects.equals(record.user, user))
                 .map(Record::getEvent)
                 .collect(Collectors.toSet());
     }
@@ -364,7 +401,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
         Record record = new Record();
         String[] tmp = string.split("\t");
         record.ip = tmp[0];
-        record.name = tmp[1];
+        record.user = tmp[1];
         try {
             record.date = new SimpleDateFormat("dd.MM.yyyy H:m:s").parse(tmp[2]);
         } catch (ParseException e) {
@@ -406,7 +443,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
 
     private class Record {
         String ip;
-        String name;
+        String user;
         Date date;
         Event event;
         int task;
@@ -416,8 +453,8 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
             return ip;
         }
 
-        public String getName() {
-            return name;
+        public String getUser() {
+            return user;
         }
 
         public Date getDate() {
@@ -437,5 +474,21 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
         }
     }
 
+    private class Query {
+        String field1;
+        String field2;
+        Object value1;
 
+        public String getField1() {
+            return field1;
+        }
+
+        public String getField2() {
+            return field2;
+        }
+
+        public Object getValue1() {
+            return value1;
+        }
+    }
 }
