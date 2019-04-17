@@ -8,12 +8,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQuery {
@@ -29,15 +25,10 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
         return ((after == null || date.after(after)) && (before == null || date.before(before)));
     }
 
-    public int getNumberOfUniqueIPs(Date after, Date before) {
-
-        return getUniqueIPs(after, before).size();
-    }
-
     public Set<Object> execute(String query) {
         parseDir();
 
-        Query q = parseQuery(query);
+        Query q = Query.parseQuery(query);
 
         if (q.field1 != null) {
             try {
@@ -49,7 +40,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
 
                 Set<Object> set = new HashSet<>();
                 for (Record record : records) {
-                    if (method2 != null && Objects.equals(method2.invoke(record), q.value1) || method2 == null) {
+                    if (isDateInRange(record.date, q.date1, q.date2) && method2 != null && Objects.equals(method2.invoke(record), q.value1) || method2 == null) {
                         Object invoke = method.invoke(record);
                         set.add(invoke);
                     }
@@ -62,37 +53,9 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
         return null;
     }
 
-    private Query parseQuery(String query) {
-        String fullPattern = "^get\\s(?<field1>\\w+)\\sfor\\s(?<field2>\\w+)\\s=\\s\"(?<value1>.*?)\"";
-        String shortPattern = "^get\\s(?<field1>\\w+)";
+    public int getNumberOfUniqueIPs(Date after, Date before) {
 
-        Query q = new Query();
-
-        if (query.matches(fullPattern)) {
-            Matcher matcher = Pattern.compile(fullPattern).matcher(query);
-            if (matcher.find()) {
-                q.field1 = matcher.group("field1");
-                q.field2 = matcher.group("field2");
-                try {
-                    if (q.field2.equals("date"))
-                        q.value1 = new SimpleDateFormat("dd.MM.yyyy H:m:s").parse(matcher.group("value1"));
-                    else if (q.field2.equals("event"))
-                        q.value1 = Event.valueOf(matcher.group("value1"));
-                    else if (q.field2.equals("status"))
-                        q.value1 = Status.valueOf(matcher.group("value1"));
-                    else q.value1 = matcher.group("value1");
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }
-            }
-        } else if (query.matches(shortPattern)) {
-            Matcher matcher = Pattern.compile(shortPattern).matcher(query);
-            if (matcher.find()) {
-                q.field1 = matcher.group("field1");
-            }
-        }
-
-        return q;
+        return getUniqueIPs(after, before).size();
     }
 
     public Set<String> getUniqueIPs(Date after, Date before) {
@@ -397,30 +360,11 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.reducing(0, e -> 1, Integer::sum)));
     }
 
-    private Record getRecord(String string) {
-        Record record = new Record();
-        String[] tmp = string.split("\t");
-        record.ip = tmp[0];
-        record.user = tmp[1];
-        try {
-            record.date = new SimpleDateFormat("dd.MM.yyyy H:m:s").parse(tmp[2]);
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-        String[] event = tmp[3].split("\\s");
-        record.event = Event.valueOf(event[0]);
-        if (record.event == Event.SOLVE_TASK || record.event == Event.DONE_TASK) {
-            record.task = Integer.parseInt(event[1]);
-        }
-        record.status = Status.valueOf(tmp[4]);
-
-        return record;
-    }
 
     private void parseLog(Path log) {
         try (BufferedReader reader = Files.newBufferedReader(log)) {
             while (reader.ready()) {
-                records.add(getRecord(reader.readLine()));
+                records.add(Record.parseRecord(reader.readLine()));
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -428,7 +372,7 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
 
     }
 
-    public void parseDir() {
+    private void parseDir() {
         if (!dirIsParsed) {
             try {
                 Files.list(logDir)
@@ -441,54 +385,5 @@ public class LogParser implements IPQuery, UserQuery, DateQuery, EventQuery, QLQ
         dirIsParsed = true;
     }
 
-    private class Record {
-        String ip;
-        String user;
-        Date date;
-        Event event;
-        int task;
-        Status status;
 
-        public String getIp() {
-            return ip;
-        }
-
-        public String getUser() {
-            return user;
-        }
-
-        public Date getDate() {
-            return date;
-        }
-
-        public Event getEvent() {
-            return event;
-        }
-
-        public int getTask() {
-            return task;
-        }
-
-        public Status getStatus() {
-            return status;
-        }
-    }
-
-    private class Query {
-        String field1;
-        String field2;
-        Object value1;
-
-        public String getField1() {
-            return field1;
-        }
-
-        public String getField2() {
-            return field2;
-        }
-
-        public Object getValue1() {
-            return value1;
-        }
-    }
 }

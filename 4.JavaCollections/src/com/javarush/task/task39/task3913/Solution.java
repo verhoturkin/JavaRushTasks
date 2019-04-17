@@ -31,10 +31,10 @@ ERROR - произошла ошибка.
 Класс, который будет отвечать за парсинг логов называется LogParser.
 1.1. Добавь в класс LogParser конструктор с параметром Path logDir, где logDir - директория с логами (логов может быть несколько, все они должны иметь расширение log).
 1.2. Реализуй интерфейс IPQuery у класса LogParser:
-1.2.1. Метод getNumberOfUniqueIPs(Date after, Date before) должен возвращать количество уникальных IP адресов за выбранный период. Здесь и далее, если в методе есть параметры Date after и Date before, то нужно возвратить данные касающиеся только данного периода (включая даты after и before).
-Если параметр after равен null, то нужно обработать все записи, у которых дата меньше или равна before.
-Если параметр before равен null, то нужно обработать все записи, у которых дата больше или равна after.
-Если и after, и before равны null, то нужно обработать абсолютно все записи (без фильтрации по дате).
+1.2.1. Метод getNumberOfUniqueIPs(Date date1, Date date2) должен возвращать количество уникальных IP адресов за выбранный период. Здесь и далее, если в методе есть параметры Date date1 и Date date2, то нужно возвратить данные касающиеся только данного периода (включая даты date1 и date2).
+Если параметр date1 равен null, то нужно обработать все записи, у которых дата меньше или равна date2.
+Если параметр date2 равен null, то нужно обработать все записи, у которых дата больше или равна date1.
+Если и date1, и date2 равны null, то нужно обработать абсолютно все записи (без фильтрации по дате).
 1.2.2. Метод getUniqueIPs() должен возвращать множество, содержащее все не повторяющиеся IP. Тип в котором будем хранить IP будет String.
 1.2.3. Метод getIPsForUser() должен возвращать IP, с которых работал переданный пользователь.
 1.2.4. Метод getIPsForEvent() должен возвращать IP, с которых было произведено переданное событие.
@@ -62,10 +62,10 @@ ERROR - произошла ошибка.
 2.5. Метод getLoggedUsers() должен возвращать пользователей, которые были залогинены.
 2.6. Метод getDownloadedPluginUsers() должен возвращать пользователей, которые скачали плагин.
 2.7. Метод getWroteMessageUsers() должен возвращать пользователей, которые отправили сообщение.
-2.8. Метод getSolvedTaskUsers(Date after, Date before) должен возвращать пользователей, которые решали любую задачу.
-2.9. Метод getSolvedTaskUsers(Date after, Date before, int task) должен возвращать пользователей, которые решали задачу с номером task.
-2.10. Метод getDoneTaskUsers(Date after, Date before) должен возвращать пользователей, которые решали любую задачу.
-2.11. Метод getDoneTaskUsers(Date after, Date before, int task) должен возвращать пользователей, которые решали задачу с номером task.
+2.8. Метод getSolvedTaskUsers(Date date1, Date date2) должен возвращать пользователей, которые решали любую задачу.
+2.9. Метод getSolvedTaskUsers(Date date1, Date date2, int task) должен возвращать пользователей, которые решали задачу с номером task.
+2.10. Метод getDoneTaskUsers(Date date1, Date date2) должен возвращать пользователей, которые решали любую задачу.
+2.11. Метод getDoneTaskUsers(Date date1, Date date2, int task) должен возвращать пользователей, которые решали задачу с номером task.
 
 
 Требования:
@@ -231,6 +231,7 @@ public class Solution {
         System.out.println(logParser.execute("get ip for user = \"Vasya Pupkin\""));
         System.out.println(logParser.execute("get user for event = \"DONE_TASK\""));
         System.out.println(logParser.execute("get event for date = \"03.01.2014 03:45:23\""));
+        System.out.println(logParser.execute("get ip for user = \"Eduard Petrovich Morozko\" and date between \"11.12.2013 0:00:00\" and \"03.01.2014 23:59:59\""));
 
     }
 }
