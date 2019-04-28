@@ -41,7 +41,7 @@ public class HHStrategy implements Strategy {
 
                     vacancy.setUrl(element.getElementsByAttributeValue("data-qa", "vacancy-serp__vacancy-title").attr("href"));
 
-                    vacancy.setSiteName("HeadHunter");
+                    vacancy.setSiteName("hh.ua");
 
                     vacancies.add(vacancy);
                 }
